@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[project]
+name = "document-ai-system"
+version = "0.1.0"
+description = "철도 결함 문서 AI 시스템 (LLM + RAG)"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "chromadb>=0.4.22",
+    "google-generativeai>=0.3.2",
+    "python-multipart>=0.0.9",
+    "python-dotenv>=1.0.0",
+    "sentence-transformers>=2.3.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "pypdf>=4.0.0",
+    "reportlab>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "httpx>=0.26.0",
+]

@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+env
+*.egg-info
+dist
+build
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# 환경 설정
+.env
+.env.local
+
+# 데이터 (볼륨으로 마운트)
+data/
+*.db
+
+# 테스트
+tests/
+pytest_cache/
+.coverage
+
+# 문서
+*.md
+docs/

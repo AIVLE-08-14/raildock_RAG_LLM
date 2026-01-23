@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  document-ai:
+    build: .
+    container_name: document-ai-system
+    ports:
+      - "8888:8888"
+    volumes:
+      # 데이터 영속성 (컨테이너 재시작해도 유지)
+      - ./data/chroma_db:/app/data/chroma_db
+      - ./data/reports:/app/data/reports
+      - ./data/regulations:/app/data/regulations
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=gemini-2.5-flash
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

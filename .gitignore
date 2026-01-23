@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# 환경 설정 (API 키 포함 - 절대 업로드 금지)
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 데이터 (서버에서 생성되는 파일들)
+data/chroma_db/*
+data/reports/*
+data/regulations/*
+!data/chroma_db/.gitkeep
+!data/reports/.gitkeep
+!data/regulations/.gitkeep
+*.db
+
+# 로그
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 테스트
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 테스트 결과 폴더
+result_*/

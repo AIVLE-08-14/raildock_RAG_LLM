@@ -1,0 +1,23 @@
+# 철도 문서 AI 시스템 의존성
+# 설치: pip install -r requirements.txt
+
+# FastAPI & 서버
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.9
+
+# LLM (Google Gemini)
+google-generativeai>=0.3.2
+
+# Vector DB (RAG)
+chromadb>=0.4.22
+sentence-transformers>=2.3.0
+
+# PDF 처리
+pypdf>=4.0.0
+reportlab>=4.0.0
+
+# 설정 & 유틸
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
