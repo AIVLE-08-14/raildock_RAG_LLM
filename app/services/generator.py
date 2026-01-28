@@ -535,9 +535,8 @@ class DocumentGenerator:
 [부품명]
 {부품명}
 
-[노선정보]
-노선: {노선}
-위치: {위치}
+[위치]
+{위치}
 
 [환경정보]
 지역: {region_name}

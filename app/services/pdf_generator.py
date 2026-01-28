@@ -136,7 +136,6 @@ class PDFGenerator:
             ['일련번호', parsed_data.get('일련번호', '-')],
             ['철도분류', parsed_data.get('철도분류', '-')],
             ['부품명', parsed_data.get('부품명', '-')],
-            ['노선', parsed_data.get('노선', '-')],
             ['위치', parsed_data.get('위치', '-')],
         ]
 
@@ -281,13 +280,9 @@ class PDFGenerator:
             if key not in parsed or not parsed[key]:  # 기존 값이 없거나 빈 경우만
                 parsed[key] = value.strip()
 
-        # 노선정보 내부의 노선/위치 추출
+        # 위치 정보 정리 (노선정보 형식 하위호환)
         if '노선정보' in parsed:
             info = parsed['노선정보']
-            if '노선:' in info:
-                노선_match = re.search(r'노선:\s*(.+?)(?:\n|$)', info)
-                if 노선_match:
-                    parsed['노선'] = 노선_match.group(1).strip()
             if '위치:' in info:
                 위치_match = re.search(r'위치:\s*(.+?)(?:\n|$)', info)
                 if 위치_match:
@@ -637,7 +632,6 @@ class PDFGenerator:
             [make_cell('일련번호'), make_cell(parsed_data.get('일련번호', '-'))],
             [make_cell('철도분류'), make_cell(parsed_data.get('철도분류', '-'))],
             [make_cell('부품명'), make_cell(parsed_data.get('부품명', '-'))],
-            [make_cell('노선'), make_cell(parsed_data.get('노선', '-'))],
             [make_cell('위치'), make_cell(parsed_data.get('위치', '-'))],
         ]
 
