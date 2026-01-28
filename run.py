@@ -76,6 +76,7 @@ def setup_directories():
     dirs = [
         base_path / "data" / "chroma_db",
         base_path / "data" / "reports",
+        base_path / "data" / "report_db",  # 챗봇용 보고서 Vector DB
     ]
 
     for dir_path in dirs:

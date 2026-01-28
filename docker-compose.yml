@@ -9,8 +9,10 @@ services:
     volumes:
       # 데이터 영속성 (컨테이너 재시작해도 유지)
       - ./data/chroma_db:/app/data/chroma_db
+      - ./data/report_db:/app/data/report_db
       - ./data/reports:/app/data/reports
       - ./data/regulations:/app/data/regulations
+      - ./data/json_reports:/app/data/json_reports
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - GEMINI_MODEL=gemini-2.5-flash

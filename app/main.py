@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import document, pipeline
 from app.config import settings
+from chatbot.routers import chat as chatbot_router
 from app.utils.pdf_loader import pdf_loader
 from app.services.vector_service import vector_service
 
@@ -27,6 +28,7 @@ app.add_middleware(
 # 라우터 등록
 app.include_router(document.router, prefix="/document", tags=["Document"])
 app.include_router(pipeline.router, prefix="/pipeline", tags=["Pipeline"])
+app.include_router(chatbot_router.router, prefix="/chatbot", tags=["Chatbot"])
 
 
 @app.get("/")
@@ -50,6 +52,12 @@ async def root():
             "regulations": {
                 "load_pdfs": "POST /regulations/load-pdfs",
                 "clear": "DELETE /regulations/clear"
+            },
+            "chatbot": {
+                "ask": "POST /chatbot/ask (RAILDOCK에게 질문)",
+                "reports": "GET /chatbot/reports (저장된 보고서 목록)",
+                "stats": "GET /chatbot/stats (보고서 통계)",
+                "clear": "DELETE /chatbot/clear (보고서 DB 초기화)"
             }
         }
     }

@@ -23,10 +23,14 @@ env/
 
 # 데이터 (서버에서 생성되는 파일들)
 data/chroma_db/*
+data/report_db/*
 data/reports/*
+data/json_reports/*
 data/regulations/*
 !data/chroma_db/.gitkeep
+!data/report_db/.gitkeep
 !data/reports/.gitkeep
+!data/json_reports/.gitkeep
 !data/regulations/.gitkeep
 *.db
 
@@ -41,6 +45,7 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+check_rag.py
 
 # 테스트 결과 폴더
 result_*/

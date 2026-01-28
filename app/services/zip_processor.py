@@ -105,7 +105,14 @@ class ZipProcessor:
 
             folder_name = folder.name
             json_dir = folder / "json"
-            frames_dir = folder / "frames"
+
+            # 이미지 폴더 찾기 (detect > frames 우선순위)
+            frames_dir = None
+            for img_folder in ['detect', 'frames']:
+                candidate = folder / img_folder
+                if candidate.exists():
+                    frames_dir = candidate
+                    break
 
             if not json_dir.exists():
                 continue
@@ -118,7 +125,7 @@ class ZipProcessor:
 
                     # 매칭되는 이미지 경로 추가
                     image_name = vision_result.get('image_file', '')
-                    image_path = frames_dir / image_name if image_name else None
+                    image_path = frames_dir / image_name if (frames_dir and image_name) else None
 
                     results.append({
                         'folder': folder_name,
