@@ -118,6 +118,7 @@ class PipelineResponse(BaseModel):
 @router.post("/process-zip", response_model=PipelineResponse)
 async def process_vision_zip(
     file: UploadFile = File(...),
+    original_metadata: UploadFile = File(None),
     generate_pdf: bool = True,
     skip_review: bool = False
 ):
@@ -125,13 +126,14 @@ async def process_vision_zip(
     Vision AI 결과 ZIP 파일 처리
 
     1. ZIP 압축 해제
-    2. ZIP 내 metadata.json 자동 인식
+    2. 원본데이터 JSON 또는 ZIP 내 metadata.json 인식
     3. 3개 폴더 (rail, insulator, nest) 읽기
     4. 각 JSON에 대해 문서 생성 + 검토(권장 조치내용 수정)
     5. 폴더별 PDF 보고서 생성 (rail, insulator, nest 각각)
 
     Args:
-        file: ZIP 파일 (metadata.json 포함 가능)
+        file: ZIP 파일 (필수)
+        original_metadata: 원본데이터 JSON 파일 (선택)
         generate_pdf: PDF 생성 여부 (기본: True)
         skip_review: 검토 단계 건너뛰기 (기본: False)
     """
@@ -146,16 +148,25 @@ async def process_vision_zip(
         # 2. 압축 해제
         extract_dir, folders = zip_processor.extract_zip_from_bytes(zip_bytes, file.filename)
 
-        # 3. ZIP 내 metadata.json 자동 인식
+        # 3. 원본데이터 JSON 로드 (업로드된 파일 우선, 없으면 ZIP 내 탐색)
         metadata = None
-        metadata_candidates = ['metadata.json', 'meta.json']
-        for candidate in metadata_candidates:
-            metadata_file = os.path.join(extract_dir, candidate)
-            if os.path.exists(metadata_file):
-                metadata = load_metadata(metadata_file)
-                if metadata:
-                    print(f"ZIP 내 메타데이터 자동 인식: {candidate}")
-                    break
+        if original_metadata and original_metadata.filename:
+            try:
+                metadata_bytes = await original_metadata.read()
+                metadata = json.loads(metadata_bytes.decode('utf-8'))
+                print(f"원본데이터 JSON 로드 완료: {original_metadata.filename}")
+            except Exception as e:
+                print(f"원본데이터 JSON 파싱 실패: {e}")
+
+        if not metadata:
+            metadata_candidates = ['metadata.json', 'meta.json']
+            for candidate in metadata_candidates:
+                metadata_file = os.path.join(extract_dir, candidate)
+                if os.path.exists(metadata_file):
+                    metadata = load_metadata(metadata_file)
+                    if metadata:
+                        print(f"ZIP 내 메타데이터 자동 인식: {candidate}")
+                        break
 
         # 4. Vision 결과 읽기
         vision_results = zip_processor.read_vision_results(extract_dir)

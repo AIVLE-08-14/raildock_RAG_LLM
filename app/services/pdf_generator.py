@@ -631,8 +631,7 @@ class PDFGenerator:
             [make_cell('항목', True), make_cell('내용', True)],
             [make_cell('일련번호'), make_cell(parsed_data.get('일련번호', '-'))],
             [make_cell('철도분류'), make_cell(parsed_data.get('철도분류', '-'))],
-            [make_cell('부품명'), make_cell(parsed_data.get('부품명', '-'))],
-            [make_cell('위치'), make_cell(parsed_data.get('위치', '-'))],
+            [make_cell('탐지대상'), make_cell(parsed_data.get('부품명', '-'))],
         ]
 
         info_table = Table(info_data, colWidths=[35*mm, 130*mm])
@@ -741,29 +740,6 @@ class PDFGenerator:
                 elements.append(Spacer(1, 5*mm))
             except Exception as e:
                 print(f"이미지 추가 실패: {e}")
-
-        # 작업이력 테이블 (내용은 완전히 빈칸)
-        history_data = [
-            [make_cell('항목', True), make_cell('내용', True)],
-            [make_cell('조치결과'), make_cell('', allow_blank=True)],
-            [make_cell('작업일자'), make_cell('', allow_blank=True)],
-            [make_cell('작업내용'), make_cell('', allow_blank=True)],
-        ]
-
-        history_table = Table(history_data, colWidths=[35*mm, 130*mm])
-        history_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('BACKGROUND', (0, 1), (0, -1), colors.lightgrey),
-            ('LEFTPADDING', (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ]))
-        elements.append(history_table)
 
         return elements
 

@@ -114,7 +114,7 @@ document_ai_system/
 │   │   ├── scenario_document/    # 시나리오 규정
 │   │   └── maintenance_document/ # 유지보수 규정
 │   ├── chroma_db/                # 규정 Vector DB
-│   ├── report_db/                # 보고서 Vector DB (챗봇용)
+│   ├── chatbot_db/               # 챗봇 Vector DB
 │   ├── reports/                  # 생성된 PDF (데이터셋별 통합)
 │   └── json_reports/             # 생성된 JSON (데이터셋별 통합)
 │
@@ -225,7 +225,7 @@ docker-compose down
 
 | 엔드포인트 | 메서드 | 설명 |
 |------------|--------|------|
-| `/pipeline/process-zip` | POST | ZIP 업로드 → 자동 처리 |
+| `/pipeline/process-zip` | POST | ZIP + 원본데이터 JSON 업로드 → 자동 처리 |
 | `/pipeline/process-folder` | POST | 로컬 폴더 처리 |
 | `/pipeline/list-pdfs` | GET | PDF 목록 |
 | `/pipeline/download-pdf/{filename}` | GET | PDF 다운로드 |

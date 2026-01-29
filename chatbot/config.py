@@ -9,7 +9,7 @@ class ChatbotSettings(BaseSettings):
     chatbot_model: str = "gemini-2.5-flash"
 
     # 보고서 Vector DB
-    report_db_path: str = "./data/report_db"
+    report_db_path: str = "./data/chatbot_db"
 
     # 검색 설정
     report_top_k: int = 5
