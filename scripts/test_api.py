@@ -44,42 +44,30 @@ def test_upload_status():
     return response.status_code == 200
 
 
-def test_upload_zip():
-    """ZIP 파일 업로드 테스트"""
-    print("\n=== 5. ZIP 파일 업로드 ===")
+def test_process_zip():
+    """ZIP 처리 테스트 (S3 presigned URL 방식)"""
+    print("\n=== 5. ZIP 처리 (S3 URL) ===")
 
-    # result_1 폴더를 ZIP으로 압축하여 업로드
-    import zipfile
-    import tempfile
+    # 실제 S3 presigned URL을 입력해야 합니다
+    request_data = {
+        "zip_url": "https://your-bucket.s3.amazonaws.com/result.zip?presigned...",
+        "metadata_url": "https://your-bucket.s3.amazonaws.com/metadata.json?presigned...",
+        "generate_pdf": True,
+        "skip_review": False
+    }
 
-    result_path = Path(__file__).parent.parent.parent / "result_1"
+    print("※ 실제 S3 presigned URL을 입력해야 테스트 가능합니다.")
+    print(f"Request: {json.dumps(request_data, ensure_ascii=False, indent=2)}")
 
-    if not result_path.exists():
-        print(f"테스트 데이터 폴더가 없습니다: {result_path}")
-        return False
+    # response = requests.post(f"{BASE_URL}/pipeline/process-zip", json=request_data)
+    # print(f"Status: {response.status_code}")
+    # if response.status_code == 200:
+    #     # 응답이 ZIP 파일
+    #     with open("result_output.zip", "wb") as f:
+    #         f.write(response.content)
+    #     print("결과 ZIP 저장 완료: result_output.zip")
 
-    # 임시 ZIP 파일 생성
-    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
-        tmp_path = tmp.name
-
-    with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for file_path in result_path.rglob("*"):
-            if file_path.is_file():
-                arcname = file_path.relative_to(result_path)
-                zf.write(file_path, arcname)
-
-    # 업로드
-    with open(tmp_path, 'rb') as f:
-        files = {'file': ('test_result.zip', f, 'application/zip')}
-        response = requests.post(f"{BASE_URL}/upload/vision-result", files=files)
-
-    # 임시 파일 삭제
-    Path(tmp_path).unlink()
-
-    print(f"Status: {response.status_code}")
-    result = response.json()
-    print(f"Response: {json.dumps(result, ensure_ascii=False, indent=2)}")
-    return response.status_code == 200
+    return True
 
 
 def test_metadata():
@@ -187,7 +175,7 @@ def main():
         ("DB 초기화", test_init_database),
         ("규정 PDF 로드", test_load_regulations),
         ("업로드 상태", test_upload_status),
-        ("ZIP 업로드", test_upload_zip),
+        ("ZIP 처리 (S3 URL)", test_process_zip),
         ("메타데이터 조회", test_metadata),
         ("규정 목록", test_regulations),
         ("RAG 쿼리", test_rag_query),

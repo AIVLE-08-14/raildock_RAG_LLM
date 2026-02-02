@@ -225,7 +225,7 @@ docker-compose down
 
 | 엔드포인트 | 메서드 | 설명 |
 |------------|--------|------|
-| `/pipeline/process-zip` | POST | ZIP + 원본데이터 JSON 업로드 → 자동 처리 |
+| `/pipeline/process-zip` | POST | S3 presigned URL로 ZIP + 메타데이터 JSON 다운로드 → 자동 처리 → 결과 ZIP(PDF+JSON) 반환 |
 | `/pipeline/process-folder` | POST | 로컬 폴더 처리 |
 | `/pipeline/list-pdfs` | GET | PDF 목록 |
 | `/pipeline/download-pdf/{filename}` | GET | PDF 다운로드 |

@@ -135,7 +135,7 @@ class PDFGenerator:
             ['항목', '내용'],
             ['일련번호', parsed_data.get('일련번호', '-')],
             ['철도분류', parsed_data.get('철도분류', '-')],
-            ['부품명', parsed_data.get('부품명', '-')],
+            ['탐지대상', parsed_data.get('탐지대상', parsed_data.get('부품명', '-'))],
             ['위치', parsed_data.get('위치', '-')],
         ]
 
@@ -631,7 +631,7 @@ class PDFGenerator:
             [make_cell('항목', True), make_cell('내용', True)],
             [make_cell('일련번호'), make_cell(parsed_data.get('일련번호', '-'))],
             [make_cell('철도분류'), make_cell(parsed_data.get('철도분류', '-'))],
-            [make_cell('탐지대상'), make_cell(parsed_data.get('부품명', '-'))],
+            [make_cell('탐지대상'), make_cell(parsed_data.get('탐지대상', parsed_data.get('부품명', '-')))],
         ]
 
         info_table = Table(info_data, colWidths=[35*mm, 130*mm])

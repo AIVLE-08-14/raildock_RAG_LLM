@@ -1,14 +1,17 @@
 """자동화 파이프라인 API 라우터"""
 
 import os
+import io
 import json
+import zipfile
 import tempfile
 from pathlib import Path
 from datetime import datetime
 from typing import List, Optional, Dict
 from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
+import httpx
 
 from app.services.zip_processor import zip_processor
 from app.services.generator import document_generator
@@ -98,75 +101,65 @@ def load_metadata(metadata_path: str) -> Optional[Dict]:
 router = APIRouter()
 
 
-class ProcessResult(BaseModel):
-    """처리 결과"""
-    filename: str
-    folder: str
-    document: str
-    pdf_path: Optional[str] = None
-
-
-class PipelineResponse(BaseModel):
-    """파이프라인 응답"""
-    message: str
-    total_processed: int
-    summary: dict
-    results: List[ProcessResult]
-    pdf_paths: Optional[Dict[str, str]] = None  # 폴더별 PDF 경로
-
-
-@router.post("/process-zip", response_model=PipelineResponse)
-async def process_vision_zip(
-    file: UploadFile = File(...),
-    original_metadata: UploadFile = File(None),
-    generate_pdf: bool = True,
+class ProcessRequest(BaseModel):
+    """처리 요청"""
+    zip_url: str           # Vision AI 결과 ZIP S3 presigned URL (필수)
+    metadata_url: str      # 원본데이터 JSON S3 presigned URL (필수)
+    generate_pdf: bool = True
     skip_review: bool = False
-):
-    """
-    Vision AI 결과 ZIP 파일 처리
 
-    1. ZIP 압축 해제
-    2. 원본데이터 JSON 또는 ZIP 내 metadata.json 인식
+
+async def download_from_url(url: str, description: str = "파일") -> bytes:
+    """S3 presigned URL에서 파일 다운로드"""
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        response = await client.get(url)
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{description} 다운로드 실패 (HTTP {response.status_code})"
+            )
+        return response.content
+
+
+@router.post("/process-zip")
+async def process_vision_zip(request: ProcessRequest):
+    """
+    Vision AI 결과 ZIP 파일 처리 (S3 presigned URL 입력, ZIP 파일 출력)
+
+    1. S3 presigned URL에서 ZIP + 메타데이터 JSON 다운로드
+    2. ZIP 압축 해제
     3. 3개 폴더 (rail, insulator, nest) 읽기
     4. 각 JSON에 대해 문서 생성 + 검토(권장 조치내용 수정)
-    5. 폴더별 PDF 보고서 생성 (rail, insulator, nest 각각)
+    5. 폴더별 PDF + JSON 보고서 생성
+    6. 결과물을 ZIP으로 묶어 반환
 
-    Args:
-        file: ZIP 파일 (필수)
-        original_metadata: 원본데이터 JSON 파일 (선택)
+    Request Body:
+        zip_url: Vision AI 결과 ZIP S3 presigned URL (필수)
+        metadata_url: 원본데이터 JSON S3 presigned URL (필수)
         generate_pdf: PDF 생성 여부 (기본: True)
         skip_review: 검토 단계 건너뛰기 (기본: False)
+
+    Returns:
+        ZIP 파일 (3개 PDF + 3개 JSON)
     """
-    # 파일 확장자 확인
-    if not file.filename.endswith('.zip'):
-        raise HTTPException(status_code=400, detail="ZIP 파일만 업로드 가능합니다.")
-
     try:
-        # 1. ZIP 파일 읽기
-        zip_bytes = await file.read()
+        # 1. S3에서 파일 다운로드
+        print("S3에서 ZIP 파일 다운로드 중...")
+        zip_bytes = await download_from_url(request.zip_url, "ZIP 파일")
 
-        # 2. 압축 해제
-        extract_dir, folders = zip_processor.extract_zip_from_bytes(zip_bytes, file.filename)
+        print("S3에서 메타데이터 JSON 다운로드 중...")
+        metadata_bytes = await download_from_url(request.metadata_url, "메타데이터 JSON")
 
-        # 3. 원본데이터 JSON 로드 (업로드된 파일 우선, 없으면 ZIP 내 탐색)
+        # 2. ZIP 압축 해제
+        extract_dir, folders = zip_processor.extract_zip_from_bytes(zip_bytes, "input.zip")
+
+        # 3. 메타데이터 JSON 파싱
         metadata = None
-        if original_metadata and original_metadata.filename:
-            try:
-                metadata_bytes = await original_metadata.read()
-                metadata = json.loads(metadata_bytes.decode('utf-8'))
-                print(f"원본데이터 JSON 로드 완료: {original_metadata.filename}")
-            except Exception as e:
-                print(f"원본데이터 JSON 파싱 실패: {e}")
-
-        if not metadata:
-            metadata_candidates = ['metadata.json', 'meta.json']
-            for candidate in metadata_candidates:
-                metadata_file = os.path.join(extract_dir, candidate)
-                if os.path.exists(metadata_file):
-                    metadata = load_metadata(metadata_file)
-                    if metadata:
-                        print(f"ZIP 내 메타데이터 자동 인식: {candidate}")
-                        break
+        try:
+            metadata = json.loads(metadata_bytes.decode('utf-8'))
+            print("원본데이터 JSON 로드 완료")
+        except Exception as e:
+            print(f"원본데이터 JSON 파싱 실패: {e}")
 
         # 4. Vision 결과 읽기
         vision_results = zip_processor.read_vision_results(extract_dir)
@@ -174,7 +167,7 @@ async def process_vision_zip(
         if not vision_results:
             raise HTTPException(status_code=400, detail="처리할 Vision 결과가 없습니다.")
 
-        # 4. 각 결과 처리
+        # 5. 각 결과 처리
         results = []
         pdf_reports_by_folder = {'rail': [], 'insulator': [], 'nest': []}
         json_reports_by_folder = {'rail': [], 'insulator': [], 'nest': []}
@@ -203,7 +196,7 @@ async def process_vision_zip(
                 )
 
                 # 문서 검토 (권장 조치내용 직접 수정)
-                if not skip_review:
+                if not request.skip_review:
                     print(f"  → 문서 검토 및 수정 중...")
                     revised_document = document_reviewer.review(
                         document=document,
@@ -214,12 +207,11 @@ async def process_vision_zip(
                 else:
                     print(f"  ✓ 완료 (검토 생략)")
 
-                # 결과 저장
-                result = ProcessResult(
-                    filename=filename,
-                    folder=folder,
-                    document=document
-                )
+                results.append({
+                    'filename': filename,
+                    'folder': folder,
+                    'document': document
+                })
 
                 # JSON용 데이터 수집 (폴더별 분류)
                 if folder in json_reports_by_folder:
@@ -227,11 +219,11 @@ async def process_vision_zip(
                         'filename': filename,
                         'vision_result': vision_result,
                         'document_content': document,
-                        'review_result': {"revised": not skip_review}
+                        'review_result': {"revised": not request.skip_review}
                     })
 
                 # PDF용 데이터 수집 (폴더별 분류)
-                if generate_pdf and folder in pdf_reports_by_folder:
+                if request.generate_pdf and folder in pdf_reports_by_folder:
                     pdf_reports_by_folder[folder].append({
                         'document_content': document,
                         'vision_result': vision_result,
@@ -253,23 +245,20 @@ async def process_vision_zip(
                 except Exception as e:
                     print(f"  → 보고서 저장 실패: {e}")
 
-                results.append(result)
-
             except Exception as e:
-                # 개별 처리 실패 시 계속 진행
-                results.append(ProcessResult(
-                    filename=filename,
-                    folder=folder,
-                    document=f"처리 실패: {str(e)}"
-                ))
+                results.append({
+                    'filename': filename,
+                    'folder': folder,
+                    'document': f"처리 실패: {str(e)}"
+                })
 
-        # 5. 폴더별 PDF 및 JSON 생성
+        # 6. 폴더별 PDF 및 JSON 생성
         pdf_paths = {}
         json_paths = {}
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # PDF 생성
-        if generate_pdf:
+        if request.generate_pdf:
             for folder_name, reports in pdf_reports_by_folder.items():
                 if reports:
                     try:
@@ -296,18 +285,29 @@ async def process_vision_zip(
                 except Exception as e:
                     print(f"  → {folder_name} JSON 생성 실패: {e}")
 
-        # 6. 요약 정보
-        summary = zip_processor.get_summary(vision_results)
-
         # 7. 임시 폴더 정리
         zip_processor.cleanup(extract_dir)
 
-        return PipelineResponse(
-            message=f"처리 완료: {len(results)}개 파일",
-            total_processed=len(results),
-            summary=summary,
-            results=results,
-            pdf_paths=pdf_paths
+        # 8. 결과물 ZIP 생성 (PDF + JSON)
+        output_buffer = io.BytesIO()
+        with zipfile.ZipFile(output_buffer, 'w', zipfile.ZIP_DEFLATED) as out_zip:
+            for folder_name, pdf_path in pdf_paths.items():
+                if os.path.exists(pdf_path):
+                    out_zip.write(pdf_path, os.path.basename(pdf_path))
+
+            for folder_name, json_path in json_paths.items():
+                if os.path.exists(json_path):
+                    out_zip.write(json_path, os.path.basename(json_path))
+
+        output_buffer.seek(0)
+
+        output_filename = f"inspection_reports_{timestamp}.zip"
+        return StreamingResponse(
+            output_buffer,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{output_filename}"'
+            }
         )
 
     except HTTPException:
