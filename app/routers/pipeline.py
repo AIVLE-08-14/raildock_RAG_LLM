@@ -2,6 +2,7 @@
 
 import os
 import io
+import re
 import json
 import zipfile
 import tempfile
@@ -29,6 +30,28 @@ FOLDER_NAME_MAP = {
 
 # JSON 결과 저장 경로
 JSON_REPORTS_DIR = Path("./data/json_reports")
+
+
+def parse_document_sections(content: str) -> dict:
+    """document_content를 섹션별 dict로 파싱"""
+    sections = {}
+    current_key = None
+    current_lines = []
+
+    for line in content.split('\n'):
+        match = re.match(r'^\[(.+?)\]$', line.strip())
+        if match:
+            if current_key is not None:
+                sections[current_key] = '\n'.join(current_lines).strip()
+            current_key = match.group(1)
+            current_lines = []
+        elif current_key is not None:
+            current_lines.append(line)
+
+    if current_key is not None:
+        sections[current_key] = '\n'.join(current_lines).strip()
+
+    return sections
 
 
 def save_batch_json_report(
@@ -61,6 +84,7 @@ def save_batch_json_report(
             "image_file": report.get("vision_result", {}).get("image_file", ""),
             "vision_result": report.get("vision_result", {}),
             "document_content": report.get("document_content", ""),
+            "document_sections": parse_document_sections(report.get("document_content", "")),
             "review_result": report.get("review_result", None)
         })
 
@@ -246,6 +270,9 @@ async def process_vision_zip(request: ProcessRequest):
                     print(f"  → 보고서 저장 실패: {e}")
 
             except Exception as e:
+                import traceback
+                print(f"  ✗ 처리 실패: {str(e)}")
+                traceback.print_exc()
                 results.append({
                     'filename': filename,
                     'folder': folder,

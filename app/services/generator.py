@@ -373,7 +373,7 @@ class DocumentGenerator:
         image_file = vision_result.get('image_file', 'Unknown')
         is_anomaly = vision_result.get('is_anomaly', False)
         노선 = vision_result.get('노선', '')
-        위치 = vision_result.get('위치', '')
+        # 위치 관련 변수 제거 - region_name으로 통합
 
         # 메타데이터 추출
         env_metadata = metadata.get('metadata', {}) if metadata else {}
@@ -387,11 +387,8 @@ class DocumentGenerator:
         file_parts = image_file.replace('.jpg', '').split('_')
         if len(file_parts) >= 4:
             rail_type_from_file = file_parts[1] if len(file_parts) > 1 else ''
-            location_from_file = file_parts[3] if len(file_parts) > 3 else ''
             if not 노선:
                 노선 = rail_type_from_file
-            if not 위치:
-                위치 = location_from_file
 
         # 일련번호 생성
         serial_number = f"RPT-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
@@ -547,9 +544,6 @@ class DocumentGenerator:
 [탐지대상]
 {탐지대상}
 
-[위치]
-{위치}
-
 [환경정보]
 지역: {region_name}
 촬영일시: {datetime_str}
@@ -577,10 +571,6 @@ class DocumentGenerator:
 2. 조치 방법:
 - [탐지대상] ([등급], [참조규정ID]): [조치 내용]
 3. 주의사항: (환경 조건 고려)
-
-[조치결과]
-
-[작업이력]
 
 ---
 

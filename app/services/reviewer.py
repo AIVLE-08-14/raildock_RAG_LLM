@@ -304,9 +304,9 @@ class DocumentReviewer:
 - [부품명] ([등급], [참조규정ID]): [조치 내용]
 3. 주의사항: (환경 조건 고려)
 
-[조치결과]
-
-[작업이력]
+⚠️ 중요: 응답은 반드시 [일련번호]부터 시작하세요.
+등급 기준, Vision 결과, 규정 내용 등 참고 정보를 절대 응답에 포함하지 마세요.
+오직 수정된 보고서 본문만 출력하세요.
 
 """
 
@@ -320,6 +320,11 @@ class DocumentReviewer:
 
         # ## 철도 시설물 점검 보고서 제목 제거 (있으면)
         document = re.sub(r'^##?\s*철도\s*시설물\s*점검\s*보고서\s*\n*', '', document)
+
+        # [일련번호] 앞의 모든 내용 제거
+        match = re.search(r'\[일련번호\]', document)
+        if match:
+            document = document[match.start():]
 
         return document.strip()
 

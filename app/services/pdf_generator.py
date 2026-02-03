@@ -136,7 +136,6 @@ class PDFGenerator:
             ['일련번호', parsed_data.get('일련번호', '-')],
             ['철도분류', parsed_data.get('철도분류', '-')],
             ['탐지대상', parsed_data.get('탐지대상', parsed_data.get('부품명', '-'))],
-            ['위치', parsed_data.get('위치', '-')],
         ]
 
         info_table = Table(info_data, colWidths=[40*mm, 120*mm])
@@ -217,33 +216,6 @@ class PDFGenerator:
             except Exception as e:
                 print(f"이미지 추가 실패: {e}")
 
-        # 작업이력
-        history_data = [
-            ['항목', '내용'],
-            ['조치결과', parsed_data.get('조치결과', '미조치')],
-            ['작업일자', parsed_data.get('작업일자', '-')],
-            ['작업내용', parsed_data.get('작업내용', '-')],
-        ]
-
-        history_table = Table(history_data, colWidths=[40*mm, 120*mm])
-        history_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), self.korean_font),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BACKGROUND', (0, 0), (0, 0), colors.grey),
-            ('BACKGROUND', (1, 0), (1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('BACKGROUND', (0, 1), (0, -1), colors.lightgrey),
-            ('LEFTPADDING', (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ]))
-        elements.append(Spacer(1, 5*mm))
-        elements.append(history_table)
-
         # PDF 생성
         doc.build(elements)
 
@@ -279,14 +251,6 @@ class PDFGenerator:
             key = field_name.replace(' ', '_').strip()
             if key not in parsed or not parsed[key]:  # 기존 값이 없거나 빈 경우만
                 parsed[key] = value.strip()
-
-        # 위치 정보 정리 (노선정보 형식 하위호환)
-        if '노선정보' in parsed:
-            info = parsed['노선정보']
-            if '위치:' in info:
-                위치_match = re.search(r'위치:\s*(.+?)(?:\n|$)', info)
-                if 위치_match:
-                    parsed['위치'] = 위치_match.group(1).strip()
 
         # 환경정보 내부 추출 (다음 필드명 전까지만 추출)
         if '환경정보' in parsed:
@@ -358,18 +322,6 @@ class PDFGenerator:
                 if key in parsed and parsed[key].strip():
                     parsed['참조_규정'] = parsed[key].strip()
                     break
-
-        # 작업이력 내부 추출
-        if '작업이력' in parsed:
-            info = parsed['작업이력']
-            if '작업일자:' in info:
-                match = re.search(r'작업일자:\s*(.+?)(?:\n|$)', info)
-                if match:
-                    parsed['작업일자'] = match.group(1).strip()
-            if '작업내용:' in info:
-                match = re.search(r'작업내용:\s*(.+?)(?:\n|$)', info)
-                if match:
-                    parsed['작업내용'] = match.group(1).strip()
 
         return parsed
 
