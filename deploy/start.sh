@@ -9,7 +9,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# 어떤 env 파일을 쓸지 결정
+# 어떤 env 파일을 쓸지 결정 (bundle 우선)
 if [ -f "$SCRIPT_DIR/image.env" ]; then
   ENV_FILE="$SCRIPT_DIR/image.env"
 elif [ -f "/opt/raildock-llm/.env" ]; then
@@ -24,12 +24,14 @@ set -a
 source "$ENV_FILE"
 set +a
 
-# 기존 .env에서 ECR_URI/IMAGE_TAG 제거 후 새 값으로 덮어쓰기
-grep -v '^ECR_URI=' .env | grep -v '^IMAGE_TAG=' > .env.tmp || true
+# 필수값 체크
+: "${ECR_URI:?ECR_URI not set}"
+: "${IMAGE_TAG:?IMAGE_TAG not set}"
 
-# ✅ 여기 핵심: deploy/image.env 같은 상대경로 쓰지 말고 ENV_FILE 쓰기
-cat .env.tmp "$ENV_FILE" > .env
-rm -f .env.tmp
+# ✅ 기존 .env에서 ECR_URI/IMAGE_TAG 제거 후, 현재 값으로 다시 추가
+grep -v '^ECR_URI=' .env | grep -v '^IMAGE_TAG=' > .env.new || true
+printf "ECR_URI=%s\nIMAGE_TAG=%s\n" "$ECR_URI" "$IMAGE_TAG" >> .env.new
+mv .env.new .env
 
 echo "==== merged .env ===="
-cat .env
+tail -n 20 .env
