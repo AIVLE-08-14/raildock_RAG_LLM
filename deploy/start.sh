@@ -7,48 +7,31 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-# 어떤 env 파일을 쓸지 결정 (bundle 우선)
-if [ -f "$SCRIPT_DIR/image.env" ]; then
-  ENV_FILE="$SCRIPT_DIR/image.env"
-elif [ -f "/opt/raildock-llm/.env" ]; then
-  ENV_FILE="/opt/raildock-llm/.env"
-else
-  echo "No env file found ($SCRIPT_DIR/image.env or /opt/raildock-llm/.env)" >&2
+if [ ! -f deploy/image.env ]; then
+  echo "deploy/image.env not found in bundle" >&2
+  ls -al deploy || true
   exit 1
 fi
 
-set -a
-source "$ENV_FILE"
-set +a
-
-: "${ECR_URI:?ECR_URI not set}"
-: "${IMAGE_TAG:?IMAGE_TAG not set}"
-
-# 기존 .env에서 ECR_URI/IMAGE_TAG 제거 후, 현재 값으로 다시 추가
-grep -v '^ECR_URI=' .env | grep -v '^IMAGE_TAG=' > .env.new || true
-mv .env.new .env
+# 기존 .env에서 ECR_URI/IMAGE_TAG 제거 후 새 값으로 덮어쓰기
+grep -v '^ECR_URI=' .env | grep -v '^IMAGE_TAG=' > .env.tmp || true
+cat .env.tmp deploy/image.env > .env
+rm -f .env.tmp
 
 echo "==== merged .env ===="
-tail -n 20 .env
+cat .env
 
-# =========================
-# ✅ 여기부터 "진짜 시작" 파트
-# =========================
-
-# docker compose 커맨드 호환 (docker-compose / docker compose)
-if command -v docker-compose >/dev/null 2>&1; then
-  DC="docker-compose"
-else
-  DC="docker compose"
+# ---- ECR login (root) ----
+AWS_REGION=ap-northeast-2
+if ! command -v aws >/dev/null 2>&1; then
+  echo "aws cli not found" >&2
+  exit 1
 fi
 
-# 최신 이미지 받아오고
-$DC -f docker-compose.prod.yml pull
+ECR_REGISTRY="$(grep '^ECR_URI=' .env | cut -d= -f2 | cut -d/ -f1)"
+aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-# 컨테이너 재기동
-$DC -f docker-compose.prod.yml up -d --remove-orphans
-
-# 상태 확인
-$DC -f docker-compose.prod.yml ps
+# ---- Start containers ----
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
+docker image prune -f || true
