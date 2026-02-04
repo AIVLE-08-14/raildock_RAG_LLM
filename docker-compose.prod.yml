@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   document-ai:
-    build: .
+    image: "${ECR_URI}:${IMAGE_TAG}"
     container_name: document-ai-system
     ports:
       - "8888:8888"

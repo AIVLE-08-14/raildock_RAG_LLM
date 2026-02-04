@@ -28,7 +28,6 @@ set +a
 
 # 기존 .env에서 ECR_URI/IMAGE_TAG 제거 후, 현재 값으로 다시 추가
 grep -v '^ECR_URI=' .env | grep -v '^IMAGE_TAG=' > .env.new || true
-printf "ECR_URI=%s\nIMAGE_TAG=%s\n" "$ECR_URI" "$IMAGE_TAG" >> .env.new
 mv .env.new .env
 
 echo "==== merged .env ===="
