@@ -7,9 +7,16 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-if [ ! -f deploy/image.env ]; then
-  echo "deploy/image.env not found in bundle" >&2
-  ls -al deploy || true
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ -f "$SCRIPT_DIR/image.env" ]; then
+  source "$SCRIPT_DIR/image.env"
+elif [ -f "/opt/raildock/.env" ]; then
+  set -a
+  source /opt/raildock/.env
+  set +a
+else
+  echo "No env file found (deploy/image.env or /opt/raildock/.env)" >&2
   exit 1
 fi
 
