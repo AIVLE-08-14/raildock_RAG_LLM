@@ -11,12 +11,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ -f "$SCRIPT_DIR/image.env" ]; then
   source "$SCRIPT_DIR/image.env"
-elif [ -f "/opt/raildock/.env" ]; then
+elif [ -f "/opt/raildock-llm/.env" ]; then
   set -a
-  source /opt/raildock/.env
+  source /opt/raildock-llm/.env
   set +a
 else
-  echo "No env file found (deploy/image.env or /opt/raildock/.env)" >&2
+  echo "No env file found (deploy/image.env or /opt/raildock-llm/.env)" >&2
   exit 1
 fi
 
