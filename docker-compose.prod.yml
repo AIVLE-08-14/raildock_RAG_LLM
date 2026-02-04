@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  document-ai:
+    build: .
+    container_name: document-ai-system
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./data/chroma_db:/app/data/chroma_db
+      - ./data/chatbot_db:/app/data/chatbot_db
+      - ./data/reports:/app/data/reports
+      - ./data/regulations:/app/data/regulations
+      - ./data/json_reports:/app/data/json_reports
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=gemini-2.5-flash
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

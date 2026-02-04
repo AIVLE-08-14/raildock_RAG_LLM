@@ -49,3 +49,5 @@ check_rag.py
 
 # 테스트 결과 폴더
 result_*/
+/app/routers/data/chroma_db/chroma.sqlite3
+/app/routers/data/chatbot_db/chroma.sqlite3

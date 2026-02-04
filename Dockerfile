@@ -7,19 +7,20 @@ WORKDIR /app
 # 시스템 패키지 설치 (한글 폰트 + curl)
 RUN apt-get update && apt-get install -y \
     fonts-nanum \
-    fonts-nanum-coding \
     fontconfig \
     curl \
     && fc-cache -fv \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 의존성 파일 복사 및 설치
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+ENV UV_INSTALL_DIR=/usr/local/bin
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 애플리케이션 코드 복사
-COPY . .
+COPY pyproject.toml uv.lock README.md /workdir/
+RUN uv sync --no-dev --frozen
+
+
+COPY . /app
 
 # 데이터 디렉토리 생성
 RUN mkdir -p /app/data/chroma_db /app/data/chatbot_db /app/data/reports /app/data/regulations /app/data/json_reports
@@ -33,4 +34,4 @@ ENV HOST=0.0.0.0
 ENV PORT=8888
 
 # 실행 명령
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8888"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8888"]

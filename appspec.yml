@@ -1,0 +1,29 @@
+version: 0.0
+os: linux
+
+files:
+  - source: docker-compose.prod.yml
+    destination: /opt/raildock-llm
+  - source: deploy/
+    destination: /opt/raildock-llm/deploy
+
+hooks:
+  ApplicationStop:
+    - location: deploy/stop.sh
+      timeout: 60
+      runas: root
+
+  BeforeInstall:
+    - location: deploy/prep.sh
+      timeout: 120
+      runas: root
+
+  ApplicationStart:
+    - location: deploy/start.sh
+      timeout: 180
+      runas: root
+
+  ValidateService:
+    - location: deploy/health.sh
+      timeout: 60
+      runas: root
