@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 ENV UV_INSTALL_DIR=/usr/local/bin
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-COPY pyproject.toml uv.lock README.md /workdir/
+COPY pyproject.toml uv.lock /app/
 RUN uv sync --no-dev --frozen
 
 
