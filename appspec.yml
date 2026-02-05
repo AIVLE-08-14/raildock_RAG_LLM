@@ -20,7 +20,7 @@ hooks:
 
   ApplicationStart:
     - location: deploy/start.sh
-      timeout: 180
+      timeout: 360
       runas: root
 
   ValidateService:
