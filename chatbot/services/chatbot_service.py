@@ -1,6 +1,8 @@
 """RAILDOCK 챗봇 서비스"""
 
-import google.generativeai as genai
+# import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Dict, Any, List, Optional
 
 from chatbot.config import chatbot_settings
@@ -131,8 +133,10 @@ class RaildockChatbot:
     """RAILDOCK 챗봇 서비스"""
 
     def __init__(self):
-        genai.configure(api_key=chatbot_settings.google_api_key)
-        self.model = genai.GenerativeModel(chatbot_settings.chatbot_model)
+        # genai.configure(api_key=chatbot_settings.google_api_key)
+        # self.model = genai.GenerativeModel(chatbot_settings.chatbot_model)
+        self.client = genai.Client(api_key=chatbot_settings.google_api_key)
+        self.model_name = chatbot_settings.chatbot_model
 
     def ask(
         self,
@@ -177,21 +181,41 @@ class RaildockChatbot:
         prompt = self._build_prompt(question, report_context, regulation_context)
 
         # 6. Gemini API 호출 (Google Search Retrieval 포함)
-        response = self.model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=2000
-            ),
-            tools=[{
-                "google_search_retrieval": {
-                    "dynamic_retrieval_config": {
-                        "mode": "MODE_DYNAMIC",
-                        "dynamic_threshold": 0.7  # 높을수록 검색 덜 함 (규정/보고서 우선)
-                    }
-                }
-            }]
+        # response = self.model.generate_content(
+        #     prompt,
+        #     generation_config=genai.types.GenerationConfig(
+        #         temperature=0.3,
+        #         max_output_tokens=2000
+        #     ),
+        #     # tools=[{
+        #     #     "google_search_retrieval": {
+        #     #         "dynamic_retrieval_config": {
+        #     #             "mode": "MODE_DYNAMIC",
+        #     #             "dynamic_threshold": 0.7  # 높을수록 검색 덜 함 (규정/보고서 우선)
+        #     #         }
+        #     #     }
+        #     # }]
+        #     tools=[{
+        #         "google_search": {}
+        #     }]
+        # )
+        need_search = any(k in question for k in ["최신", "최근", "뉴스", "버전", "정책", "공식", "가격"])
+
+        tools = [types.Tool(google_search=types.GoogleSearch())] if need_search else None
+
+        config = types.GenerateContentConfig(
+            temperature=0.3,
+            max_output_tokens=2000,
+            tools=tools
         )
+
+        resp = self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=config
+        )
+
+        answer_text = resp.text or ""
 
         # 7. 참조 보고서 정보 정리
         referenced_reports = [
@@ -206,7 +230,8 @@ class RaildockChatbot:
         ]
 
         return {
-            "answer": response.text,
+            # "answer": response.text,
+            "answer": answer_text,
             "related_reports": referenced_reports,
             "report_count": len(referenced_reports),
             "referenced_regulations": list(set(referenced_regulations))  # 참조한 규정 ID
@@ -216,28 +241,55 @@ class RaildockChatbot:
         """보고서 없을 때 일반 안내 답변"""
         prompt = GENERAL_PROMPT.format(question=question)
 
-        response = self.model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=1500
-            ),
-            tools=[{
-                "google_search_retrieval": {
-                    "dynamic_retrieval_config": {
-                        "mode": "MODE_DYNAMIC",
-                        "dynamic_threshold": 0.7
-                    }
-                }
-            }]
+        # response = self.model.generate_content(
+        #     prompt,
+        #     generation_config=genai.types.GenerationConfig(
+        #         temperature=0.3,
+        #         max_output_tokens=1500
+        #     ),
+        #     # tools=[{
+        #     #     "google_search_retrieval": {
+        #     #         "dynamic_retrieval_config": {
+        #     #             "mode": "MODE_DYNAMIC",
+        #     #             "dynamic_threshold": 0.7
+        #     #         }
+        #     #     }
+        #     # }]
+        #     tools=[{
+        #         "google_search": {}
+        #     }]
+        # )
+        need_search = any(k in question for k in ["최신", "최근", "뉴스", "버전", "정책", "공식", "가격"])
+
+        tools = [types.Tool(google_search=types.GoogleSearch())] if need_search else None
+
+        config = types.GenerateContentConfig(
+            temperature=0.3,
+            max_output_tokens=1500,
+            tools=tools
         )
 
+        resp = self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=config
+        )
+
+        answer_text = resp.text or ""
+
         return {
-            "answer": response.text,
+            "answer": answer_text,
             "related_reports": [],
             "report_count": 0,
-            "mode": "general"  # 일반 안내 모드 표시
+            "mode": "general"
         }
+
+        # return {
+        #     "answer": response.text,
+        #     "related_reports": [],
+        #     "report_count": 0,
+        #     "mode": "general"  # 일반 안내 모드 표시
+        # }
 
     def _build_context(self, reports: List[Dict]) -> str:
         """보고서 컨텍스트 구성"""
